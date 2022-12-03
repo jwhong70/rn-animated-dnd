@@ -2,6 +2,7 @@ import React, { useRef } from "react";
 import styled from "styled-components/native";
 import { Animated, View, PanResponder } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { Easing } from "react-native";
 
 const BLACK_COLOR = "#1e272e";
 const GREY = "#485460";
@@ -57,6 +58,21 @@ export default function App() {
       onPanResponderRelease: () => {
         Animated.parallel([onPressOut, goHome]).start();
       },
+      onPanResponderRelease: (_, { dy }) => {
+        if (dy < -250 || dy > 250) {
+          Animated.sequence([
+            Animated.parallel([onDropScale, onDropOpacity]),
+            Animated.timing(position, {
+              toValue: 0,
+              duration: 50,
+              easing: Easing.linear,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        } else {
+          Animated.parallel([onPressOut, goHome]).start();
+        }
+      },
     })
   ).current;
   const onPressIn = Animated.spring(scale, {
@@ -71,10 +87,33 @@ export default function App() {
     toValue: 0,
     useNativeDriver: true,
   });
+  const scaleOne = position.y.interpolate({
+    inputRange: [-300, -80],
+    outputRange: [2, 1],
+    extrapolate: "clamp",
+  });
+  const scaleTwo = position.y.interpolate({
+    inputRange: [80, 300],
+    outputRange: [1, 2],
+    extrapolate: "clamp",
+  });
+  const onDropScale = Animated.timing(scale, {
+    toValue: 0,
+    duration: 50,
+    easing: Easing.linear,
+    useNativeDriver: true,
+  });
+  const opacity = useRef(new Animated.Value(1)).current;
+  const onDropOpacity = Animated.timing(opacity, {
+    toValue: 0,
+    duration: 50,
+    easing: Easing.linear,
+    useNativeDriver: true,
+  });
   return (
     <Container>
       <Edge>
-        <WordContainer>
+        <WordContainer style={{ transform: [{ scale: scaleOne }] }}>
           <Word color={GREEN}>알아</Word>
         </WordContainer>
       </Edge>
@@ -82,6 +121,7 @@ export default function App() {
         <IconCard
           {...panResponder.panHandlers}
           style={{
+            opacity,
             transform: [...position.getTranslateTransform(), { scale }],
           }}
         >
@@ -89,7 +129,7 @@ export default function App() {
         </IconCard>
       </Center>
       <Edge>
-        <WordContainer>
+        <WordContainer style={{ transform: [{ scale: scaleTwo }] }}>
           <Word color={RED}>몰라</Word>
         </WordContainer>
       </Edge>
